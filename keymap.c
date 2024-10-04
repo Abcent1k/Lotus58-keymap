@@ -100,36 +100,27 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 // Encoders
 bool encoder_update_user(uint8_t index, bool clockwise) {
-    if (layer_state_is(0)) {
-        if (index == 1) {
-            if (encoder_tick) {
-                tap_code(clockwise ? KC_RGHT : KC_LEFT);
+    switch (get_highest_layer(layer_state)) {
+        case 1:
+            tap_code(clockwise ? (index == 1 ? KC_VOLD : KC_WH_R) : (index == 1 ? KC_VOLU : KC_WH_L));
+            break;
+        case 2:
+            (clockwise ? (index == 1 ? rgblight_decrease_val : rgblight_increase_hue)
+                    : (index == 1 ? rgblight_increase_val : rgblight_decrease_hue))();
+            break;
+        default:
+        case 0:
+            if (index == 1) {
+                if (encoder_tick) {
+                    tap_code(clockwise ? KC_RGHT : KC_LEFT);
+                }
+                encoder_tick = !encoder_tick;
+            } else {
+                tap_code(clockwise ? KC_WH_U : KC_WH_D);
             }
-            encoder_tick = !encoder_tick;
-            return false;
-        }
-        else if (index == 0) {
-            tap_code(clockwise ? KC_WH_U : KC_WH_D);
-        }
+            break;
     }
 
-    else if (layer_state_is(1)) {
-        if (index == 1) {
-            tap_code(clockwise ? KC_VOLD : KC_VOLU);
-        }
-        else if (index == 0) {
-            tap_code(clockwise ? KC_WH_R : KC_WH_L);
-        }
-    }
-
-    else if (layer_state_is(2)) {
-        if (index == 1) {
-            (clockwise ? rgblight_decrease_val : rgblight_increase_val)();
-        }
-        else if (index == 0) {
-            (clockwise ? rgblight_increase_hue : rgblight_decrease_hue)();
-        }
-    }
     return false;
 }
 
