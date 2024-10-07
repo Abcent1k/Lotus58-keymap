@@ -1,7 +1,12 @@
 #include QMK_KEYBOARD_H
 #include "rgblight.h"
+#include "eeprom.h" // Подключаем EEPROM библиотеку
 
 static bool encoder_tick = false; // Variable for tracking full and half cut-offs
+static bool toggleFunction = false; // Variable for function state
+
+#define SNAP_TAP_EEPROM_ADDR 32 // Address in EEPROM for storing the snap-tap status
+
 
 enum custom_keycodes {
     SNP_TAP = SAFE_RANGE,  // Define pseudo-key for snap-tap function
@@ -59,6 +64,8 @@ const rgblight_segment_t* const PROGMEM rgb_layers[] = RGBLIGHT_LAYERS_LIST(
 // Enable the LED layers
 void keyboard_post_init_user(void) {
     rgblight_layers = rgb_layers;
+    toggleFunction = eeprom_read_byte((void*)SNAP_TAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
+    rgblight_set_layer_state(3, toggleFunction); // Layer setting depending on the condition
 }
 
 bool led_update_user(led_t led_state) {
@@ -128,14 +135,14 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool aHeld = false;
     static bool dHeld = false;
-    static bool toggleFunction = false; // Variable for function state
 
 switch (keycode) {
         case SNP_TAP: // Custom key for toggling the function
             if (record->event.pressed) {
                 toggleFunction = !toggleFunction; // Toggle the function state
+                rgblight_set_layer_state(3, toggleFunction); // Activate or deactivate layer snap-tap
+                eeprom_update_byte((void*)SNAP_TAP_EEPROM_ADDR, toggleFunction); // Saving the status to EEPROM
             }
-            rgblight_set_layer_state(3, toggleFunction); // Activate or deactivate layer snap-tap
             return false; // Don't send the key press
 
         case KC_A:
