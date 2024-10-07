@@ -128,7 +128,7 @@ bool encoder_update_user(uint8_t index, bool clockwise) {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool aHeld = false;
     static bool dHeld = false;
-    static bool toggleFunction = true; // Variable for function state
+    static bool toggleFunction = false; // Variable for function state
 
 switch (keycode) {
         case SNP_TAP: // Custom key for toggling the function
