@@ -77,7 +77,7 @@ void keyboard_post_init_user(void) {
     snap_tap_function = eeprom_read_byte((void*)SNAP_TAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
     rgblight_set_layer_state(3, snap_tap_function); // Layer setting depending on the condition
     mod_swap_function = eeprom_read_byte((void*)MOD_SWAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
-    rgblight_set_layer_state(3, mod_swap_function); // Layer setting depending on the condition
+    rgblight_set_layer_state(4, mod_swap_function); // Layer setting depending on the condition
 }
 
 bool led_update_user(led_t led_state) {
