@@ -3,13 +3,16 @@
 #include "eeprom.h" // Подключаем EEPROM библиотеку
 
 static bool encoder_tick = false; // Variable for tracking full and half cut-offs
-static bool toggleFunction = false; // Variable for function state
+static bool snap_tap_function = false; // Variable for snap-tap function state
+static bool mod_swap_function = false; // Variable for mod-swap function state
 
 #define SNAP_TAP_EEPROM_ADDR 32 // Address in EEPROM for storing the snap-tap status
+#define MOD_SWAP_EEPROM_ADDR 33 // Address in EEPROM for storing the mod-swap status
 
 
 enum custom_keycodes {
     SNP_TAP = SAFE_RANGE,  // Define pseudo-key for snap-tap function
+    MOD_SWP
 };
 
 //  -----------------------------  LEDs positions  -----------------------------
@@ -36,6 +39,7 @@ const rgblight_segment_t PROGMEM layer2[] = RGBLIGHT_LAYER_SEGMENTS(
     {18, 1, HSV_PURPLE},
     {53, 1, HSV_RED},
     {29, 1, HSV_TEAL},
+    {30, 1, HSV_TEAL},
     {33, 4, HSV_BLUE},
     {45, 2, HSV_BLUE},
     {48, 1, HSV_RED},
@@ -53,19 +57,27 @@ const rgblight_segment_t PROGMEM snap_tap_layer_on[] = RGBLIGHT_LAYER_SEGMENTS(
     {29, 1, HSV_TEAL}
 );
 
+// Light LED when win swap to ctrl (mod_swap) is enable
+const rgblight_segment_t PROGMEM mod_swap_layer_on[] = RGBLIGHT_LAYER_SEGMENTS(
+    {30, 1, HSV_TEAL}
+);
+
 // Define the array of layers
 const rgblight_segment_t* const PROGMEM rgb_layers[] = RGBLIGHT_LAYERS_LIST(
     layer1,
     layer2,
     capslock_layer,
-    snap_tap_layer_on
+    snap_tap_layer_on,
+    mod_swap_layer_on
 );
 
 // Enable the LED layers
 void keyboard_post_init_user(void) {
     rgblight_layers = rgb_layers;
-    toggleFunction = eeprom_read_byte((void*)SNAP_TAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
-    rgblight_set_layer_state(3, toggleFunction); // Layer setting depending on the condition
+    snap_tap_function = eeprom_read_byte((void*)SNAP_TAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
+    rgblight_set_layer_state(3, snap_tap_function); // Layer setting depending on the condition
+    mod_swap_function = eeprom_read_byte((void*)MOD_SWAP_EEPROM_ADDR); // Reading snap-tap status from EEPROM
+    rgblight_set_layer_state(3, mod_swap_function); // Layer setting depending on the condition
 }
 
 bool led_update_user(led_t led_state) {
@@ -97,7 +109,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     [2] = LAYOUT(
-        _______, XXXXXXX, KC_BTN4, KC_BTN3, KC_BTN5, XXXXXXX, _______,         _______, SNP_TAP, XXXXXXX, XXXXXXX, XXXXXXX, RGB_HUI, RGB_HUD,
+        _______, XXXXXXX, KC_BTN4, KC_BTN3, KC_BTN5, XXXXXXX, _______,         _______, SNP_TAP, MOD_SWP, XXXXXXX, XXXXXXX, RGB_HUI, RGB_HUD,
         _______, XXXXXXX, KC_BTN2, KC_MS_U, KC_BTN1, XXXXXXX,                           XXXXXXX, XXXXXXX, KC_WH_U, XXXXXXX, RGB_SAI, RGB_SAD,
         _______, XXXXXXX, KC_MS_L, KC_MS_D, KC_MS_R, XXXXXXX,                           XXXXXXX, KC_WH_L, KC_WH_D, KC_WH_R, RGB_VAI, RGB_VAD,
         _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, DB_TOGG,         QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, RGB_TOG, _______,
@@ -137,16 +149,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     static bool dHeld = false;
 
 switch (keycode) {
-        case SNP_TAP: // Custom key for toggling the function
+        case SNP_TAP: // Custom key for toggling the snap-tap function
             if (record->event.pressed) {
-                toggleFunction = !toggleFunction; // Toggle the function state
-                rgblight_set_layer_state(3, toggleFunction); // Activate or deactivate layer snap-tap
-                eeprom_update_byte((void*)SNAP_TAP_EEPROM_ADDR, toggleFunction); // Saving the status to EEPROM
+                snap_tap_function = !snap_tap_function; // Toggle the function state
+                rgblight_set_layer_state(3, snap_tap_function); // Activate or deactivate layer snap-tap
+                eeprom_update_byte((void*)SNAP_TAP_EEPROM_ADDR, snap_tap_function); // Saving the status to EEPROM
             }
             return false; // Don't send the key press
 
         case KC_A:
-            if (!toggleFunction) return true; // If the function is disabled, process normally
+            if (!snap_tap_function) return true; // If the function is disabled, process normally
             aHeld = record->event.pressed;
             if (dHeld && aHeld) {
                 unregister_code(KC_D);
@@ -159,7 +171,7 @@ switch (keycode) {
             return true;
 
         case KC_D:
-            if (!toggleFunction) return true; // If the function is disabled, process normally
+            if (!snap_tap_function) return true; // If the function is disabled, process normally
             dHeld = record->event.pressed;
             if (aHeld && dHeld) {
                 unregister_code(KC_A);
@@ -170,6 +182,25 @@ switch (keycode) {
                 return false; // Don't send the original key press
             }
             return true;
+
+        case MOD_SWP: // Custom key for toggling the mod_swap function
+            if (record->event.pressed) {
+                mod_swap_function = !mod_swap_function; // Toggle the function state
+                rgblight_set_layer_state(4, mod_swap_function); // Activate or deactivate layer snap-tap
+                eeprom_update_byte((void*)MOD_SWAP_EEPROM_ADDR, mod_swap_function); // Saving the status to EEPROM
+            }
+            return false; // Don't send the original key press
+
+        case KC_LGUI:
+            if (mod_swap_function) {
+                if (record->event.pressed) {
+                    register_code(KC_LCTL); // If the feature is active, than send LCTL
+                } else {
+                    unregister_code(KC_LCTL); // Release LCTL
+                }
+                return false; // Don't send the original key press
+            }
+            return true; // If the feature is not active, we treat LGUI as a regular key
 
         default:
             return true; // Process all other keys normally
