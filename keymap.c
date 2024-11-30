@@ -6,6 +6,9 @@ static bool encoder_tick = false; // Variable for tracking full and half cut-off
 static bool snap_tap_function = false; // Variable for snap-tap function state
 static bool mod_swap_function = false; // Variable for mod-swap function state
 
+static bool invert_left_encoder = true; // Variable for inverting the left encoder
+static bool invert_right_encoder = false; // Variable for inverting the right encoder
+
 #define SNAP_TAP_EEPROM_ADDR 32 // Address in EEPROM for storing the snap-tap status
 #define MOD_SWAP_EEPROM_ADDR 33 // Address in EEPROM for storing the mod-swap status
 
@@ -37,6 +40,7 @@ const rgblight_segment_t PROGMEM layer1[] = RGBLIGHT_LAYER_SEGMENTS(
 // Light LEDs for 2nd layer
 const rgblight_segment_t PROGMEM layer2[] = RGBLIGHT_LAYER_SEGMENTS(
     {18, 1, HSV_PURPLE},
+    {52, 1, HSV_RED},
     {53, 1, HSV_RED},
     {29, 1, HSV_TEAL},
     {30, 1, HSV_TEAL},
@@ -112,30 +116,34 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         _______, XXXXXXX, KC_BTN4, KC_BTN3, KC_BTN5, XXXXXXX, _______,         _______, SNP_TAP, MOD_SWP, XXXXXXX, XXXXXXX, RGB_HUI, RGB_HUD,
         _______, XXXXXXX, KC_BTN2, KC_MS_U, KC_BTN1, XXXXXXX,                           XXXXXXX, XXXXXXX, KC_WH_U, XXXXXXX, RGB_SAI, RGB_SAD,
         _______, XXXXXXX, KC_MS_L, KC_MS_D, KC_MS_R, XXXXXXX,                           XXXXXXX, KC_WH_L, KC_WH_D, KC_WH_R, RGB_VAI, RGB_VAD,
-        _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, DB_TOGG,         QK_BOOT, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, RGB_TOG, _______,
+        _______, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, XXXXXXX, DB_TOGG,         QK_BOOT, KC_MPLY, XXXXXXX, XXXXXXX, XXXXXXX, RGB_TOG, _______,
                                    _______, _______, _______, _______,         _______, _______,  _______, _______ 
     )
 };
 
 // Encoders
 bool encoder_update_user(uint8_t index, bool clockwise) {
+    bool left_clockwise = invert_left_encoder ? !clockwise : clockwise;
+    bool right_clockwise = invert_right_encoder ? !clockwise : clockwise;
+
     switch (get_highest_layer(layer_state)) {
         case 1:
-            tap_code(clockwise ? (index == 1 ? KC_VOLD : KC_WH_R) : (index == 1 ? KC_VOLU : KC_WH_L));
+            tap_code(index == 1 ? (right_clockwise ? KC_VOLD : KC_VOLU) 
+                : (left_clockwise ? KC_WH_R : KC_WH_L));
             break;
         case 2:
-            (clockwise ? (index == 1 ? rgblight_decrease_val : rgblight_increase_hue)
-                    : (index == 1 ? rgblight_increase_val : rgblight_decrease_hue))();
+            (index == 1 ? (right_clockwise ? rgblight_decrease_val : rgblight_increase_val)
+                : (left_clockwise ? rgblight_increase_hue : rgblight_decrease_hue))();
             break;
         default:
         case 0:
             if (index == 1) {
                 if (encoder_tick) {
-                    tap_code(clockwise ? KC_RGHT : KC_LEFT);
+                    tap_code(right_clockwise ? KC_RGHT : KC_LEFT);
                 }
                 encoder_tick = !encoder_tick;
             } else {
-                tap_code(clockwise ? KC_WH_U : KC_WH_D);
+                tap_code(left_clockwise ? KC_WH_U : KC_WH_D);
             }
             break;
     }
